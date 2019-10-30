@@ -155,7 +155,7 @@ def init_logging(level: int = 50):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='report results when available; wait for all connections')
+    parser = argparse.ArgumentParser(description='playing with asyncio')
     parser.add_argument('-d', '--debug', default=0, action='count', help='increase debugging; -dd etc for more; -dddd == DEBUG')
     parser.add_argument('-t', '--timeout', type=int, default=30, help='seconds to wait for all ssh connections to complete')
     args = parser.parse_args()
