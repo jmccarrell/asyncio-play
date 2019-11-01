@@ -103,6 +103,13 @@ all_judgy_hosts = (
 
 
 
+def init_logging(level: int = 50):
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
+        level=level,
+        stream=sys.stderr)
+
+
 @dataclass
 class HostSha:
     '''pair for hostname and the sha it is running'''
@@ -135,13 +142,6 @@ async def run_all_hosts(hosts: set) -> set:
 
     for result in results:
         print(f"{result.host}: {result.sha}") 
-
-
-def init_logging(level: int = 50):
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
-        level=level,
-        stream=sys.stderr)
 
 
 if __name__ == '__main__':

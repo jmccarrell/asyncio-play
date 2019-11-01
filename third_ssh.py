@@ -8,7 +8,7 @@ import logging
 import sys
 from dataclasses import dataclass
 
-from typing import NamedTuple
+from typing import NamedTuple, Sequence
 
 hosts = (
     'judgy-shadow-fast-xd9v.prod.us-e4.gcp.sift.com',
@@ -101,6 +101,28 @@ all_judgy_hosts = (
     'judgy-shadow-fast-zfd6.prod.us-e4.gcp.sift.com',
 )
 
+judgy_hosts_2 = (
+    'judgy-shadow-fast-972k',
+    'judgy-shadow-fast-qm4j',
+    'judgy-shadow-fast-t43g',
+    'judgy-shadow-fast-t44q',
+    'judgy-shadow-fast-tlgg',
+    'judgy-shadow-fast-vhbt',
+    'judgy-shadow-fast-w9xm',
+    'judgy-shadow-fast-xd9v',
+)
+
+def judgy_hosts() -> Sequence[str]:
+    """return the list of judgy hosts to operate on"""
+    return tuple( ''.join((h, '.prod.us-e4.gcp.sift.com')) for h in judgy_hosts_2 )
+    # return all_judgy_hosts
+
+
+def init_logging(level: int = 50):
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
+        level=level,
+        stream=sys.stderr)
 
 
 @dataclass
@@ -112,16 +134,12 @@ class HostSha:
 
 async def get_service_sha(host: str) -> HostSha:
     sha_cmd = 'cat /opt/sift/judgy/current/REVISION'
-
     sha = 'unknown'
 
     try:
-        async with asyncssh.connect(host) as conn:
+        async with asyncssh.connect(host=host, known_hosts=None) as conn:
             ssh_result = await conn.run(sha_cmd)
-            if ssh_result.exit_status == 0:
-                sha = ssh_result.stdout.strip()
-            else:
-                sha = ssh_result.stderr.strip()
+            sha = ssh_result.stdout.strip() if ssh_result.exit_status == 0 else ssh_result.stderr.strip()
     except Exception as e:
         sha = str(e)
         
@@ -130,7 +148,7 @@ async def get_service_sha(host: str) -> HostSha:
 
 async def run_all_hosts(hosts: set, timeout: int = 30) -> set:
 
-    tasks = (get_service_sha(h) for h in all_judgy_hosts)
+    tasks = (get_service_sha(h) for h in judgy_hosts())
     num_timed_out = 0
     for t in asyncio.as_completed(list(tasks), timeout=timeout):
         try:
@@ -147,21 +165,10 @@ async def run_all_hosts(hosts: set, timeout: int = 30) -> set:
         print(f"timed out on {num_timed_out} hosts", file=sys.stderr)
             
 
-def init_logging(level: int = 50):
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
-        level=level,
-        stream=sys.stderr)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='playing with asyncio')
-    parser.add_argument('-d', '--debug', default=0, action='count', help='increase debugging; -dd etc for more; -dddd == DEBUG')
+    parser.add_argument('-d', '--debug', default=0, action='count', help='increase debugging; -dddd == DEBUG')
     parser.add_argument('-t', '--timeout', type=int, default=30, help='seconds to wait for all ssh connections to complete')
     args = parser.parse_args()
-    critical = 50 # see: https://docs.python.org/3/library/logging.html#logging-levels
-    log_level = critical - (args.debug * 10)
-    log_level = 10 if log_level < 10 else log_level
-    init_logging(level=log_level)
     logger = logging.getLogger(__file__)
     asyncio.run(run_all_hosts(hosts, timeout=args.timeout))
