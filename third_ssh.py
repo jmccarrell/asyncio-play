@@ -80,5 +80,8 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--debug', default=0, action='count', help='increase debugging; -dddd == DEBUG')
     parser.add_argument('-t', '--timeout', type=int, default=30, help='seconds to wait for all ssh connections to complete')
     args = parser.parse_args()
-    logger = logging.getLogger(__file__)
+    critical = 50 # see: https://docs.python.org/3/library/logging.html#logging-levels
+    log_level = critical - (args.debug * 10)
+    log_level = 10 if log_level < 10 else log_level
+    init_logging(level=log_level)
     asyncio.run(run_all_hosts(judgy_hosts(), timeout=args.timeout))
